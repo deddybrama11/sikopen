@@ -122,13 +122,13 @@ public class MapFragment extends Fragment {
         }, 10);
 
         //----- Optional : Background onLocationChanged-----//
-        if (alarmManager == null) {
-            alarmManager = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
-            Intent intent = new Intent(ctx, AlarmReceive.class);
-            pendingIntent = PendingIntent.getBroadcast(ctx, 0, intent, 0);
-            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000,
-                    pendingIntent);
-        }
+//        if (alarmManager == null) {
+//            alarmManager = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+//            Intent intent = new Intent(ctx, AlarmReceive.class);
+//            pendingIntent = PendingIntent.getBroadcast(ctx, 0, intent, 0);
+//            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000,
+//                    pendingIntent);
+//        }
 
         //---------- Set Map -------------//
         map = root.findViewById(R.id.map);
