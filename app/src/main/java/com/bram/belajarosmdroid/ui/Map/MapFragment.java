@@ -2,16 +2,20 @@ package com.bram.belajarosmdroid.ui.Map;
 
 import android.Manifest;
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -87,7 +91,7 @@ public class MapFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_gallery, container, false);
         //-------------------------------------------------------------------------------------//
         mApi = Utils.getAPI();
-        setAllShift();
+
         final Context ctx = getActivity();
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
         btnAbsen = root.findViewById(R.id.btnAbsen);
@@ -125,14 +129,6 @@ public class MapFragment extends Fragment {
             alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000,
                     pendingIntent);
         }
-        //----- Optional : Background onLocationChanged-----//
-
-        //--------- Adapter SPINNER --------------------//
-        arrayList.add(new Shift(-1, -1, -1, "", "", -1, -1, "-- Pilih Shift --", false));
-        ArrayAdapter<Shift> adapter = new ArrayAdapter<Shift>(ctx,
-                android.R.layout.simple_spinner_item, arrayList);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
 
         //---------- Set Map -------------//
         map = root.findViewById(R.id.map);
@@ -140,26 +136,8 @@ public class MapFragment extends Fragment {
         map.setBuiltInZoomControls(true);
         map.setMultiTouchControls(true);
 
+        setAllShift();
         setMesin();
-
-//        Marker markerDummy = new Marker(map);
-//        markerDummy.setPosition(absenSpot);
-//        markerDummy.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-//        markerDummy.setIcon(getResources().getDrawable(R.drawable.ic_baseline_person_pin_circle_24));
-//        markerDummy.setTitle("Rs Dr Soebandi");
-//        map.getOverlays().add(markerDummy);
-
-        oPolygon = new Polygon(map);
-        final double radius = 225;
-        ArrayList<GeoPoint> circlePoints = new ArrayList<GeoPoint>();
-        for (float f = 0; f < 360; f += 1) {
-            circlePoints.add(new GeoPoint(-8.1509529, 113.7154793).destinationPoint(radius, f));
-        }
-
-        oPolygon.setPoints(circlePoints);
-        oPolygon.setTitle("Absen Point");
-        map.getOverlays().add(oPolygon);
-
 
         //---------------------------- Agar bisa dijalankan di main thread
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
@@ -228,6 +206,10 @@ public class MapFragment extends Fragment {
                             arrayList.add(new Shift(jamkerja_id, hcr_group_id, shift, jmasuk, jpulang,
                                     flexi, jefektif, ket, jamkerja_aktif));
                         }
+                        ArrayAdapter<Shift> adapter = new ArrayAdapter<Shift>(getActivity(),
+                                android.R.layout.simple_spinner_item, arrayList);
+                        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                        spinner.setAdapter(adapter);
                         Log.d("mappa", "onResponse: sukses " + response.body());
                         Log.d("mappa", "length array: " + jsonArray.length());
                     } catch (IOException | JSONException e) {
@@ -240,6 +222,7 @@ public class MapFragment extends Fragment {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
+                setAllShift();
                 Log.d("mappa", "onResponse: failure");
             }
         });
@@ -288,9 +271,10 @@ public class MapFragment extends Fragment {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                btnAbsen.setEnabled(true);
-                btnAbsenPulang.setEnabled(true);
-                llProgressBar.setVisibility(View.GONE);
+                setMesin();
+                btnAbsen.setEnabled(false);
+                btnAbsenPulang.setEnabled(false);
+                llProgressBar.setVisibility(View.VISIBLE);
             }
         });
     }
@@ -298,7 +282,7 @@ public class MapFragment extends Fragment {
     private void setMap() {
         GpsMyLocationProvider provider = new GpsMyLocationProvider(getActivity());
         provider.addLocationSource(LocationManager.GPS_PROVIDER);
-//        provider.addLocationSource(LocationManager.NETWORK_PROVIDER);
+        provider.addLocationSource(LocationManager.NETWORK_PROVIDER);
 
         final IMapController mapController = map.getController();
 
@@ -366,8 +350,6 @@ public class MapFragment extends Fragment {
                 }
             }
         });
-
-
         map.getOverlays().add(myLocationNewOverlay);
     }
 
@@ -408,11 +390,38 @@ public class MapFragment extends Fragment {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 Log.d("absen", "onResponse: absen failure");
                 Toast.makeText(getActivity(), "Tolong cek koneksi anda!", Toast.LENGTH_SHORT).show();
-                llProgressBar.setVisibility(View.GONE);
-                btnAbsen.setVisibility(View.VISIBLE);
-                btnAbsenPulang.setVisibility(View.VISIBLE);
+                
+                llProgressBar.setVisibility(View.VISIBLE);
+                btnAbsen.setVisibility(View.GONE);
+                btnAbsenPulang.setVisibility(View.GONE);
             }
         });
     }
 
+    //
+//    private void checkIfNetworkLocationAvailable() {
+//        boolean gps_enabled = false;
+//        boolean network_enabled = false;
+//
+//        LocationManager lm = (LocationManager) getActivity()
+//                .getSystemService(Context.LOCATION_SERVICE);
+//
+//        gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+//        network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+//
+//        Log.d("map", "checkIfNetworkLocationAvailable gps: "+gps_enabled);
+//        Log.d("map", "checkIfNetworkLocationAvailable network: "+network_enabled);
+//
+//        Location net_loc = null, gps_loc = null, finalLoc = null;
+////
+////        if (gps_loc != null && net_loc != null) {
+////
+////            //smaller the number more accurate result will
+////            if (gps_loc.getAccuracy() > net_loc.getAccuracy())
+////                finalLoc = net_loc;
+////            else
+////                finalLoc = gps_loc;
+////        }
+//
+//    }
 }

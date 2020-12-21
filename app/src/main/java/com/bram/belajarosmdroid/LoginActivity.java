@@ -56,12 +56,16 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                progressBar.setVisibility(View.VISIBLE);
-                txtProgress.setVisibility(View.VISIBLE);
-                Log.d("login", "onClick: id = " + username.getText().toString() + ", pass= " + md5(pass.getText().toString()));
-
-                requestLogin(username.getText().toString(), pass.getText().toString());
-
+                if(username.getText().toString().trim().equalsIgnoreCase("")){
+                    username.setError("Field username tidak boleh kosong");
+                }else if (pass.getText().toString().trim().equalsIgnoreCase("")){
+                    pass.setError("Field password tidak boleh kosong");
+                }else{
+                    progressBar.setVisibility(View.VISIBLE);
+                    txtProgress.setVisibility(View.VISIBLE);
+                    Log.d("login", "onClick: id = " + username.getText().toString() + ", pass= " + md5(pass.getText().toString()));
+                    requestLogin(username.getText().toString(), pass.getText().toString());
+                }
             }
         });
         if (!Permissons.Check_FINE_LOCATION(LoginActivity.this)) {
